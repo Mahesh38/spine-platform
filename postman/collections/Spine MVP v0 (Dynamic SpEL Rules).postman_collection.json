@@ -1,0 +1,643 @@
+{
+  "info": {
+    "_postman_id": "bc347782-8b2f-45de-97a1-3d23d2d2a3b2",
+    "name": "Spine MVP v0 (Dynamic SpEL Rules)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0) Health (optional)",
+      "id": "1a37104c-39ee-48dd-a30b-682e8ca907da",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "1) Create Entity (Company)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('entityId', json.id);",
+              "console.log('entityId:', json.id);"
+            ],
+            "type": "text/javascript",
+            "id": "37f0dcb8-0dc7-42a7-9654-49b9221a8029"
+          }
+        }
+      ],
+      "id": "021da1df-db37-46c4-937a-cf93e2d429ea",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"Company\",\n  \"name\": \"ABC Traders\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/entities",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "entities"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2) Create Commitment (Invoice Payment) + attributes (dueAt etc.)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('commitmentId', json.id);",
+              "console.log('commitmentId:', json.id);"
+            ],
+            "type": "text/javascript",
+            "id": "add1b86b-46ac-416b-bf28-2550a4b4bd58"
+          }
+        }
+      ],
+      "id": "4bab9d46-0b74-4c8c-9a1f-97766d10a1d4",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Invoice INV-001 Payment\",\n  \"ownerEntityId\": \"{{entityId}}\",\n  \"attributes\": {\n    \"dueAt\": \"2026-01-25T10:00:00Z\",\n    \"amount\": 45000,\n    \"invoiceNo\": \"INV-001\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3) Configure Commitment (Invoice Rules via SpEL)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "id": "598232a5-6e91-494f-8d8a-6cb65ee4cc43",
+            "exec": [
+              "// Build config JSON dynamically so we don't manually escape it",
+              "const cfg = {",
+              "  states: ['CREATED','ACTIVE','FULFILLED','VIOLATED'],",
+              "  initial: 'CREATED',",
+              "  transitions: {",
+              "    CREATED: ['ACTIVE'],",
+              "    ACTIVE: ['FULFILLED','VIOLATED']",
+              "  },",
+              "  rules: [",
+              "    {",
+              "      name: 'fulfill_on_payment',",
+              "      when: \"evidenceKinds.contains('payment')\",",
+              "      then: \"#A.setState('FULFILLED')\"",
+              "    },",
+              "    {",
+              "      name: 'violate_when_overdue',",
+              "      when: \"state == 'ACTIVE' && #F.parseInstant(commitment['dueAt']) != null && now.isAfter(#F.parseInstant(commitment['dueAt']))\",",
+              "      then: \"#A.setState('VIOLATED')\"",
+              "    }",
+              "  ]",
+              "};",
+              "pm.collectionVariables.set('configJson', JSON.stringify(cfg));",
+              "console.log('configJson set');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "id": "92e41a33-5793-4a00-aa9b-f405d1568b0a",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "id": "30b3ce55-b106-4a59-9570-ae83dc93a75e",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"configJson\": \"{{configJson}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/configure",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}",
+            "configure"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4) Activate Commitment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "id": "7cce8b33-78ab-4d57-9535-3bea08485e9d"
+          }
+        }
+      ],
+      "id": "fbcbf9ca-dbb6-4d22-a427-538acab5887a",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/activate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}",
+            "activate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5) Evaluate (before evidence) — should stay ACTIVE (unless overdue)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "console.log('state after eval:', json.state);"
+            ],
+            "type": "text/javascript",
+            "id": "05c2a40f-7b51-4da9-98ef-e81c947fd99c"
+          }
+        }
+      ],
+      "id": "716acdfb-47ef-48cd-a175-fa5973c142c1",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/evaluate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}",
+            "evaluate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6) Add Evidence (Payment)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "id": "85e69fd1-bccd-472b-a3d3-463e71d29e72"
+          }
+        }
+      ],
+      "id": "aad370a4-1f55-44c0-87e3-4d3320001221",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"attributes\": {\n    \"kind\": \"payment\",\n    \"utr\": \"12345\",\n    \"paidAt\": \"2026-01-20T10:00:00Z\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/evidence",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}",
+            "evidence"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7) Evaluate (after payment) — should become FULFILLED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('State is FULFILLED', function () {",
+              "  pm.expect(json.state).to.eql('FULFILLED');",
+              "});",
+              "console.log('final state:', json.state);"
+            ],
+            "type": "text/javascript",
+            "id": "521bb8d9-c2ca-48e4-9c38-639f464ee8d7"
+          }
+        }
+      ],
+      "id": "b50acb49-42bb-45ec-b7cd-093296759c7e",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/evaluate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}",
+            "evaluate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8) Get Commitment (final)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "console.log('commitment:', json);"
+            ],
+            "type": "text/javascript",
+            "id": "f1cbc4bc-997f-487c-b793-c6f96609fb8f"
+          }
+        }
+      ],
+      "id": "70e3e374-02d8-4ef7-8c04-9aa2a35eb126",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{commitmentId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9) (Optional) Audit Vertical Demo — Create new Commitment (Audit Doc Submission)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('auditCommitmentId', json.id);",
+              "console.log('auditCommitmentId:', json.id);"
+            ],
+            "type": "text/javascript",
+            "id": "27c40b08-91cc-4168-8052-02910c5bb42a"
+          }
+        }
+      ],
+      "id": "040e07d4-0ce4-4411-ad11-cc709056b3d8",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Audit Submission: Bank Statement\",\n  \"ownerEntityId\": \"{{entityId}}\",\n  \"attributes\": {\n    \"docType\": \"bank-statement\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10) (Optional) Audit Config + Activate + Upload Document + Evaluate",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const cfg = {",
+              "  states: ['CREATED','ACTIVE','FULFILLED','VIOLATED'],",
+              "  initial: 'CREATED',",
+              "  transitions: {",
+              "    CREATED: ['ACTIVE'],",
+              "    ACTIVE: ['FULFILLED','VIOLATED']",
+              "  },",
+              "  rules: [",
+              "    {",
+              "      name: 'fulfill_on_document',",
+              "      when: \"evidenceKinds.contains('document')\",",
+              "      then: \"#A.setState('FULFILLED')\"",
+              "    }",
+              "  ]",
+              "};",
+              "pm.collectionVariables.set('auditConfigJson', JSON.stringify(cfg));"
+            ],
+            "type": "text/javascript",
+            "id": "a8a3a6f9-c898-45f8-9291-ff3b1f50e851"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "id": "12bf699f-7439-41fc-a61b-dc0d2e408890"
+          }
+        }
+      ],
+      "id": "13027168-9eda-4139-9695-9d30c0c4061f",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"configJson\": \"{{auditConfigJson}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{auditCommitmentId}}/configure",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{auditCommitmentId}}",
+            "configure"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11) (Optional) Audit Activate",
+      "id": "f6293bdf-16fc-4c2b-9be0-ada34b163f21",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{auditCommitmentId}}/activate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{auditCommitmentId}}",
+            "activate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12) (Optional) Audit Add Evidence (Document)",
+      "id": "efa6e6e9-53ab-4a4f-8e4d-f24cfe614485",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"attributes\": {\n    \"kind\": \"document\",\n    \"fileName\": \"bank-statement.pdf\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{auditCommitmentId}}/evidence",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{auditCommitmentId}}",
+            "evidence"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13) (Optional) Audit Evaluate (should become FULFILLED)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('State is FULFILLED', function () {",
+              "  pm.expect(json.state).to.eql('FULFILLED');",
+              "});",
+              "console.log('audit final state:', json.state);"
+            ],
+            "type": "text/javascript",
+            "id": "441269b1-a8f9-400a-82df-ebd79d123c13"
+          }
+        }
+      ],
+      "id": "cae07ad3-ef79-43b1-a96b-1d91dfafa636",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/commitments/{{auditCommitmentId}}/evaluate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "commitments",
+            "{{auditCommitmentId}}",
+            "evaluate"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "id": "71c0d39d-5e4c-46cd-a258-d77d1f9bb284",
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "id": "67cd8447-672c-4c7c-ad21-b169c1fd9e99",
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "id": "acdf016b-3ef7-4b27-b992-45d91d1ab7aa",
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "id": "57d8d85e-a85d-44cd-bf18-d366724a1286",
+      "key": "entityId",
+      "value": ""
+    },
+    {
+      "id": "b8d2855f-b851-4060-82ba-7e6459b07ba3",
+      "key": "commitmentId",
+      "value": ""
+    },
+    {
+      "id": "a77da084-64b6-4cb0-8613-5ebeff8a7fef",
+      "key": "configJson",
+      "value": ""
+    }
+  ]
+}
