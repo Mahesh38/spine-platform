@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface CommitmentConfigRepo extends JpaRepository<CommitmentConfigRecord, String> {
-  Optional<CommitmentConfigRecord> findByCommitmentId(String commitmentId);
+    Optional<CommitmentConfigRecord> findByTenantIdAndCommitmentId(String tenantId, String commitmentId);
 }

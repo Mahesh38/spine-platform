@@ -4,5 +4,6 @@ public enum CommitmentState {
     CREATED,
     ACTIVE,
     FULFILLED,
-    VIOLATED;
+    VIOLATED,
+    FULFILLED_LATE;
 }

@@ -6,21 +6,30 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "evidence")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "evidence", indexes = {
+        @Index(name = "idx_evidence_tenant_id", columnList = "tenant_id,id")
+})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EvidenceRecord {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-  @Column(nullable = false)
-  private String commitmentId;
+    @Column(nullable = false)
+    private String tenantId;
 
-  @Lob
-  @Column(nullable = false)
-  private String attributesJson; // dynamic evidence fields like kind, utr, fileName
+    @Column(nullable = false)
+    private String commitmentId;
 
-  @Column(nullable = false)
-  private Instant createdAt;
+    @Lob
+    @Column(nullable = false)
+    private String attributesJson; // dynamic evidence fields like kind, utr, fileName
+
+    @Column(nullable = false)
+    private Instant createdAt;
 }

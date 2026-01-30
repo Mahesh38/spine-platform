@@ -1,0 +1,11 @@
+package com.spin.core.audit;
+
+public enum AuditEventType {
+    ENTITY_CREATED,
+    COMMITMENT_CREATED,
+    COMMITMENT_ACTIVATED,
+    CONFIG_APPLIED,
+    EVIDENCE_ADDED,
+    EVALUATION_RUN,
+    FAILED_OPERATION, STATE_CHANGED
+}

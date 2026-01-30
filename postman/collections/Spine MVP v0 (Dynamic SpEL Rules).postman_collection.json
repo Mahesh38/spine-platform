@@ -173,11 +173,17 @@
           {
             "key": "Content-Type",
             "value": "application/json"
+          },
+          {
+            "key": "X-Tenant-Id",
+            "value": "t1",
+            "type": "text",
+            "uuid": "65375c4d-2b6d-4b25-8ba6-da065c1d13ed"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"configJson\": \"{{configJson}}\"\n}"
+          "raw": "{\n  \"configJson\": \"{\\\"states\\\":[\\\"CREATED\\\",\\\"ACTIVE\\\",\\\"FULFILLED\\\",\\\"VIOLATED\\\"],\\\"initial\\\":\\\"CREATED\\\",\\\"transitions\\\":{\\\"CREATED\\\":[\\\"ACTIVE\\\"],\\\"ACTIVE\\\":[\\\"FULFILLED\\\",\\\"VIOLATED\\\"],\\\"VIOLATED\\\":[\\\"FULFILLED_LATE\\\"]},\\\"rules\\\":[{\\\"name\\\":\\\"fulfill_on_payment\\\",\\\"when\\\":\\\"#state == 'ACTIVE' && #evidenceKinds.contains('payment')\\\",\\\"then\\\":\\\"#A.setState('FULFILLED')\\\"},{\\\"name\\\":\\\"violate_when_overdue\\\",\\\"when\\\":\\\"#state == 'ACTIVE' && #F.parseInstant(#commitment['dueAt']) != null && #now.isAfter(#F.parseInstant(#commitment['dueAt']))\\\",\\\"then\\\":\\\"#A.setState('VIOLATED')\\\"},{\\\"name\\\":\\\"fulfill_on_payment_when_overdue\\\",\\\"when\\\":\\\"#state == 'VIOLATED' && #evidenceKinds.contains('payment')\\\",\\\"then\\\":\\\"#A.setState('FULFILLED_LATE')\\\"}]}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/commitments/{{commitmentId}}/configure",
@@ -379,6 +385,66 @@
           ],
           "path": [
             "api",
+            "commitments",
+            "{{commitmentId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8.1)Get Commitment Audit Trail",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "id": "d900e8e2-a21b-46fc-8b9f-73ce17a3339b",
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "id": "5e57e9b5-9c4b-48f5-9091-d99c680a461f",
+            "exec": [
+              "pm.test('Status 200', function () {\r",
+              "  pm.response.to.have.status(200);\r",
+              "});\r",
+              "const json = pm.response.json();\r",
+              "console.log('commitment audit Trail:', json);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "id": "da104f21-a5a1-42b3-9d0b-0b31e4c31ff2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Tenant-Id",
+            "value": "t1",
+            "type": "text",
+            "uuid": "195333e9-d28e-4f25-94ab-17dd065d1c23"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/audit/commitments/{{commitmentId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "audit",
             "commitments",
             "{{commitmentId}}"
           ]
@@ -592,50 +658,24 @@
       "response": []
     }
   ],
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "id": "71c0d39d-5e4c-46cd-a258-d77d1f9bb284",
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "id": "67cd8447-672c-4c7c-ad21-b169c1fd9e99",
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    }
-  ],
   "variable": [
     {
-      "id": "acdf016b-3ef7-4b27-b992-45d91d1ab7aa",
+      "id": "662b0735-b235-46bb-b20f-bf4dd9941c1d",
       "key": "baseUrl",
       "value": "http://localhost:8080"
     },
     {
-      "id": "57d8d85e-a85d-44cd-bf18-d366724a1286",
+      "id": "8d535394-f7aa-48f2-beed-ebda853acba0",
       "key": "entityId",
       "value": ""
     },
     {
-      "id": "b8d2855f-b851-4060-82ba-7e6459b07ba3",
+      "id": "cbe0cd31-647d-46a2-bd78-845cacb485a4",
       "key": "commitmentId",
       "value": ""
     },
     {
-      "id": "a77da084-64b6-4cb0-8613-5ebeff8a7fef",
+      "id": "a604398d-7355-49fb-8d21-38e2735be5b9",
       "key": "configJson",
       "value": ""
     }

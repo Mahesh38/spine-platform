@@ -6,31 +6,40 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "commitments")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "commitments", indexes = {
+        @Index(name = "idx_commitments_tenant_id", columnList = "tenant_id,id")
+})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class CommitmentRecord {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-  @Column(nullable = false)
-  private String title;
+    @Column(nullable = false)
+    private String tenantId;
 
-  @Column(nullable = false)
-  private String ownerEntityId;
+    @Column(nullable = false)
+    private String title;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private CommitmentState state;
+    @Column(nullable = false)
+    private String ownerEntityId;
 
-  @Lob
-  @Column(nullable = false)
-  private String attributesJson; // dynamic attributes like dueAt, amount, etc.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CommitmentState state;
 
-  @Column(nullable = false)
-  private Instant createdAt;
+    @Lob
+    @Column(nullable = false)
+    private String attributesJson; // dynamic attributes like dueAt, amount, etc.
 
-  @Column(nullable = false)
-  private Instant updatedAt;
+    @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
 }
